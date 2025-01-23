@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Shopping Bill Practice Quiz</title>
+    <title>Shopping Bill Quiz</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -49,14 +49,26 @@
 </head>
 <body>
 
-<h1>Shopping Bill Practice Quiz</h1>
-<p>Your current score: <span id="score">0</span>%</p>
+<h1>Shopping Bill Quiz</h1>
 
-<div class="progress">
+<div id="student-info" class="container">
+    <h3>Please enter your details:</h3>
+    <label for="first-name">First Name:</label>
+    <input type="text" id="first-name" required><br><br>
+    <label for="last-name">Last Name:</label>
+    <input type="text" id="last-name" required><br><br>
+    <label for="email">Email:</label>
+    <input type="email" id="email" required><br><br>
+    <button onclick="startQuiz()">Start Quiz</button>
+</div>
+
+<p id="score-container" style="display: none;">Your current score: <span id="score">0</span>%</p>
+
+<div class="progress" style="display: none;" id="progress-container">
     <div class="progress-bar" id="progress-bar">0%</div>
 </div>
 
-<div id="question-container" class="container">
+<div id="question-container" class="container" style="display: none;">
     <p id="question"></p>
     <label for="answer">Your answer ($):</label>
     <input type="number" id="answer" step="0.01" required>
@@ -68,7 +80,33 @@
 <script>
     let score = 0;
     let correctAnswer = 0;
+    let studentName = "";
+    let studentEmail = "";
 
+    // Starts the quiz after collecting student details
+    function startQuiz() {
+        const firstName = document.getElementById("first-name").value.trim();
+        const lastName = document.getElementById("last-name").value.trim();
+        const email = document.getElementById("email").value.trim();
+
+        if (!firstName || !lastName || !email) {
+            alert("Please fill in all the fields.");
+            return;
+        }
+
+        studentName = `${firstName} ${lastName}`;
+        studentEmail = email;
+
+        // Hide student info, show quiz interface
+        document.getElementById("student-info").style.display = "none";
+        document.getElementById("score-container").style.display = "block";
+        document.getElementById("progress-container").style.display = "block";
+        document.getElementById("question-container").style.display = "block";
+
+        generateQuestion();
+    }
+
+    // Generates a random quiz question
     function generateQuestion() {
         const wirelessMousePrice = (Math.random() * 10 + 5).toFixed(2);
         const flashDrivePrice = (Math.random() * 10 + 10).toFixed(2);
@@ -101,6 +139,7 @@
         document.getElementById("result").innerText = "";
     }
 
+    // Submits the student's answer and generates a new question
     function submitAnswer() {
         const studentAnswer = parseFloat(document.getElementById("answer").value);
 
@@ -123,20 +162,50 @@
         updateProgress();
 
         if (score >= 100) {
-            document.getElementById("result").innerText = "Congratulations! You have achieved 100% and completed the practice.";
+            document.getElementById("result").innerText = "Congratulations! You have completed the practice.";
             document.getElementById("question-container").style.display = "none";
+
+            // Send the result to the backend
+            sendResult();
         } else {
             generateQuestion();
         }
     }
 
+    // Updates the progress bar
     function updateProgress() {
         document.getElementById("score").innerText = score;
         document.getElementById("progress-bar").style.width = score + "%";
         document.getElementById("progress-bar").innerText = score + "%";
     }
 
-    generateQuestion();
+    // Sends the result to Google Apps Script backend
+    function sendResult() {
+        const resultData = {
+            name: studentName,
+            email: studentEmail,
+            score: score,
+        };
+
+        fetch("https://script.google.com/macros/s/AKfycbzq1VUNKwzLsG3i7qMQ99oSlg8W9KO3bKJb8J3oxXrewYD0ghEX1sPaiR-zEpqQ2tlu/exec", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(resultData),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("Your result has been saved.");
+            } else {
+                alert("Failed to save your result. Please try again.");
+            }
+        })
+        .catch(error => {
+            console.error("Error saving the result:", error);
+        });
+    }
 </script>
 
 </body>
